@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
-	challenges.GetAnswerOne()
+	//challenges.GetAnswerOneA()
+	challenges.GetAnswerOneB()
 }

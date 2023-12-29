@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func GetAnswerOne() {
+func GetAnswerOneA() {
 	inputLines := inpututils.GetFileInput("1-input.txt")
 
 	// Regex for finding single-digit numbers in a string.
@@ -30,5 +30,5 @@ func GetAnswerOne() {
 		totalValue += lineValue
 	}
 
-	fmt.Println("Challenge 1 - total value is ", totalValue)
+	fmt.Println("Challenge 1(a) - total value is ", totalValue)
 }
