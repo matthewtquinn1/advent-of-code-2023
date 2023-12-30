@@ -33,34 +33,33 @@ func GetAnswerTwoB() {
 }
 
 func (g *Game) calculateMaxDiceScore() (int, error) {
-	maxRed := 0
-	maxGreen := 0
-	maxBlue := 0
-
-	colors := map[string]int{
-		"red":   1,
-		"green": 2,
-		"blue":  3,
+	maxCounts := make(map[string]int)
+	supportedColors := map[string]bool{
+		"red":   true,
+		"green": true,
+		"blue":  true,
 	}
 
 	for _, reveal := range g.Reveals {
 		for _, pile := range reveal.dicePiles {
-
-			if _, exists := colors[pile.diceColor]; !exists {
+			if _, exists := supportedColors[pile.diceColor]; !exists {
 				return -1, errors.New("Unsupported dice color; can't calculate score.")
 			}
 
-			if pile.diceColor == "red" && pile.diceCount > maxRed {
-				maxRed = pile.diceCount
-			} else if pile.diceColor == "green" && pile.diceCount > maxGreen {
-				maxGreen = pile.diceCount
-			} else if pile.diceColor == "blue" && pile.diceCount > maxBlue {
-				maxBlue = pile.diceCount
-			} else {
-				continue
+			if pile.diceCount > maxCounts[pile.diceColor] {
+				maxCounts[pile.diceColor] = pile.diceCount
 			}
 		}
 	}
 
-	return maxRed * maxGreen * maxBlue, nil
+	if len(maxCounts) != len(supportedColors) {
+		return -1, errors.New("Not all colors are present.")
+	}
+
+	score := 1
+	for _, count := range maxCounts {
+		score *= count
+	}
+
+	return score, nil
 }
