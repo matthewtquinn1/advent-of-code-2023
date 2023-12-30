@@ -8,6 +8,22 @@ import (
 	"strings"
 )
 
+type Game struct {
+	ID      int
+	Reveals []Reveal
+}
+
+type Reveal struct {
+	dicePiles []DicePile
+}
+
+type DicePile struct {
+	diceColor string
+	diceCount int
+}
+
+var re = regexp.MustCompile("[0-9]+") // Compile once and use everywhere
+
 func GetAnswerTwoA() {
 	games := inpututils.GetFileInput("2-input.txt")
 
@@ -15,16 +31,14 @@ func GetAnswerTwoA() {
 	totalScore := 0
 
 	// Update score with Game ID when it is a winning game.
-	for _, game := range strings.Split(games, "\n") {
-
-		if isWinningGame(game) {
-			re := regexp.MustCompile("[0-9]+")
-			gameId, err := getGameId(game, re)
-			if err != nil {
-				fmt.Println("Failed to get game ID. Exiting early.")
-				return
-			} else {
-				totalScore += gameId
+	for _, gameLine := range strings.Split(games, "\n") {
+		game, err := parseGame(gameLine)
+		if err != nil {
+			fmt.Println("Failed to get game ID. Exiting early.", err)
+			return
+		} else {
+			if game.isWinningGame() {
+				totalScore += game.ID
 			}
 		}
 	}
@@ -32,30 +46,16 @@ func GetAnswerTwoA() {
 	fmt.Println("Challenge 2 - total score is ", totalScore)
 }
 
-func isWinningGame(game string) bool {
-	// Get the reveals.
-	reveals := strings.SplitAfter(game, ":")[1]
-
-	// Check each reveal pile.
-	for _, reveal := range strings.Split(reveals, ";") {
-
-		// Get pile of dices.
-		piles := strings.Split(reveal, ",")
-
-		// Check each pile to make sure it follows the max count rule for each color.
-		for _, pile := range piles {
-			pileComponents := strings.Fields(pile)
-			diceCount, _ := strconv.Atoi(pileComponents[0])
-			diceColor := pileComponents[1]
-
-			// Fail out when any dice count fails to pass.
-			if !dicePassesCheck(diceColor, diceCount) {
+func (g *Game) isWinningGame() bool {
+	for _, reveal := range g.Reveals {
+		for _, pile := range reveal.dicePiles {
+			if !dicePassesCheck(pile.diceColor, pile.diceCount) {
+				// Exit early when any dice count fails to pass.
 				return false
 			}
 		}
 	}
 
-	// No failures detected.
 	return true
 }
 
@@ -75,12 +75,53 @@ func dicePassesCheck(diceColor string, diceCount int) bool {
 	return true
 }
 
-func getGameId(game string, re *regexp.Regexp) (int, error) {
-	// Section containing ID.
-	sectionWithId := strings.SplitAfter(game, ":")[0]
-
-	// Extract ID from section using regex.
+func getGameId(sectionWithId string) (int, error) {
 	gameIdAsString := re.FindString(sectionWithId)
 
 	return strconv.Atoi(gameIdAsString)
+}
+
+func parseGame(gameLine string) (Game, error) {
+	parts := strings.Split(gameLine, ":")
+	idPart := parts[0]
+
+	reveals := parseReveals(parts[1])
+
+	id, err := getGameId(idPart)
+	if err != nil {
+		return Game{}, err
+	}
+
+	return Game{
+		ID:      id,
+		Reveals: reveals,
+	}, nil
+}
+
+func parseReveals(revealsPart string) []Reveal {
+	reveals := []Reveal{}
+	for _, reveal := range strings.Split(revealsPart, ";") {
+		piles := parseDicePiles(strings.Split(reveal, ","))
+
+		reveals = append(reveals, Reveal{
+			dicePiles: piles,
+		})
+	}
+
+	return reveals
+}
+
+func parseDicePiles(pilesPart []string) []DicePile {
+	piles := []DicePile{}
+	for _, pile := range pilesPart {
+		pileComponents := strings.Fields(pile)
+		diceCount, _ := strconv.Atoi(pileComponents[0])
+
+		piles = append(piles, DicePile{
+			diceCount: diceCount,
+			diceColor: pileComponents[1],
+		})
+	}
+
+	return piles
 }
